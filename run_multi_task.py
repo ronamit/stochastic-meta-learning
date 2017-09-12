@@ -42,25 +42,25 @@ train_tasks_data = []
 for _ in xrange(n_tasks):
     train_tasks_data.append(cmn.permute_pixels(orig_data))
 
-# -----------------------------------------------------------------------------------------------------------#
-#  Meta-training
-# -----------------------------------------------------------------------------------------------------------#
+# # -----------------------------------------------------------------------------------------------------------#
+# #  Meta-training
+# # -----------------------------------------------------------------------------------------------------------#
 prior_file_path = '/tmp/prior.ckpt'  # TODO: Date-time name
-
-print('---- Meta-training ...')
-startRuntime = timeit.default_timer()
-test_accuracy = model_bayes_multitask.learn_tasks(train_tasks_data,
-                                                  objective_type='PAC_Bayes_McAllaster', prior_file_path=prior_file_path, mode='Meta_Training')
-stopRuntime = timeit.default_timer()
-cmn.write_result('Meta-training - Test Error: {0} %, Runtime: {1} [sec]'.format
-                 (100*(1-test_accuracy), stopRuntime - startRuntime),setting_name)
+#
+# print('---- Meta-training ...')
+# startRuntime = timeit.default_timer()
+# test_accuracy = model_bayes_multitask.learn_tasks(train_tasks_data,
+#                                                   objective_type='PAC_Bayes_McAllaster', prior_file_path=prior_file_path, mode='Meta_Training')
+# stopRuntime = timeit.default_timer()
+# cmn.write_result('Meta-training - Test Error: {0} %, Runtime: {1} [sec]'.format
+#                  (100*(1-test_accuracy), stopRuntime - startRuntime),setting_name)
 
 # -----------------------------------------------------------------------------------------------------------#
 # Create test tasks:
 # -----------------------------------------------------------------------------------------------------------#
 n_tasks = 2
 test_tasks_data = []
-n_train_samples_in_test_tasks = 10000
+n_train_samples_in_test_tasks = 1000
 for _ in xrange(n_tasks):
     test_tasks_data.append(cmn.permute_pixels(orig_data, n_train_samples_in_test_tasks))
 
@@ -72,8 +72,9 @@ print('---- stadnard  single-task learning  in each test-task...')
 test_accuracy_standard = 0
 stopRuntime = timeit.default_timer()
 for i_task in xrange(n_tasks):
-    test_accuracy_standard += (1/n_tasks) *  model_standard_single_task.learn_task(test_tasks_data[i_task], dropoutFlag=False, n_steps=10000)
+    test_accuracy_standard += (1/n_tasks) *  model_standard_single_task.learn_task(test_tasks_data[i_task], dropout_flag=False, n_steps=int(1e5))
 
+startRuntime = timeit.default_timer()
 cmn.write_result('Meta-testing - Average Test Error of standard learning : {0} %, Runtime: {1} [sec]'.
                  format(100 * (1 - test_accuracy_standard), stopRuntime - startRuntime), setting_name)
 
@@ -81,8 +82,8 @@ cmn.write_result('Meta-testing - Average Test Error of standard learning : {0} %
 print('---- Meta-testing ...')
 # TODO: Print how many tasks and how many training examples
 startRuntime = timeit.default_timer()
-test_accuracy = model_bayes_multitask.learn_tasks(train_tasks_data,
-                                                  objective_type='PAC_Bayes_McAllaster', prior_file_path=prior_file_path, mode='Meta_Testing', n_steps=10000)
+test_accuracy = model_bayes_multitask.learn_tasks(test_tasks_data,
+                                                  objective_type='PAC_Bayes_McAllaster', prior_file_path=prior_file_path, mode='Meta_Testing', n_steps=int(2e6))
 stopRuntime = timeit.default_timer()
 cmn.write_result('Meta-testing - Test Error: {0} %, Runtime: {1} [sec]'.
                  format(100*(1-test_accuracy), stopRuntime - startRuntime),setting_name)

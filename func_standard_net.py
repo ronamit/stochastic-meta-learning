@@ -15,8 +15,8 @@ n_hidden2 = prm.n_hidden2
 n_labels = prm.n_labels
 
 
-def DoDropOut(a, dropoutFlag):
-    if dropoutFlag:
+def DoDropOut(a, dropout_flag):
+    if dropout_flag:
         return tf.nn.dropout(a, keep_prob=0.5)
     else:
         return a
@@ -38,19 +38,19 @@ def deterministic_linear_layer(x, layer_name, weight_shape, bias_shape):
     return output
 
 
-def network_model(x, dropoutFlag):
+def network_model(x, dropout_flag):
     """network_model builds the graph for a deep net for classifying digits."""
 
     with tf.variable_scope('net'):
         # Fully connected layer 1
         h_fc1 = tf.nn.elu(deterministic_linear_layer(x, layer_name="layer1", weight_shape=[input_size, n_hidden1],
                                                      bias_shape=[n_hidden1]))
-        h_fc1 = DoDropOut(h_fc1, dropoutFlag)
+        h_fc1 = DoDropOut(h_fc1, dropout_flag)
 
         # Fully connected layer 2
         h_fc2 = tf.nn.elu(deterministic_linear_layer(h_fc1, layer_name="layer2", weight_shape=[n_hidden1, n_hidden2],
                                                      bias_shape=[n_hidden2]))
-        h_fc2 = DoDropOut(h_fc2, dropoutFlag)
+        h_fc2 = DoDropOut(h_fc2, dropout_flag)
 
         #  Fully connected layer 3 - Map the  features to 10 classes, one for each digit
         yOut = deterministic_linear_layer(h_fc2, layer_name="layer3", weight_shape=[n_hidden2, n_labels],
