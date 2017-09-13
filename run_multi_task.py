@@ -43,7 +43,7 @@ n_steps_standard = int(1e5)
 # -----------------------------------------------------------------------------------------------------------#
 # Create training tasks:
 # -----------------------------------------------------------------------------------------------------------#
-n_tasks_train = 2
+n_tasks_train = 5
 train_tasks_data = []
 for _ in xrange(n_tasks_train):
     train_tasks_data.append(cmn.permute_pixels(orig_data))

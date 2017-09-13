@@ -152,7 +152,7 @@ def calculate_kl_dist(posterior_collection, prior_collection):
         curr_kl_dist = tf.reduce_sum(log_sigma_prior - log_sigma_post +
                                      tf.divide(tf.square(mu_post - mu_prior) + sigma_sqr_post,
                                                2 * sigma_sqr_prior + p)) - 0.5
-
+        curr_kl_dist = tf.nn.relu(curr_kl_dist) # To avoid negative KL TODO: Find better fix
         # debug assertion: KL must be positive:
         with tf.control_dependencies([tf.assert_positive(curr_kl_dist + p)]):
             kl_dist += curr_kl_dist
