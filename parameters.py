@@ -21,8 +21,8 @@ input_size = 28 * 28
 n_labels = 10
 
 # Network params:
-n_hidden1 = 420  # 100
-n_hidden2 = 400  # 100
+n_hidden1 = 1200  # 400
+n_hidden2 = 1200  # 400
 
 #  epsilons should be sampled ~ N(0,1):
 epsilonStdDefault = 1  # For debug set epsilons with 0.0 -> recovers standard NN

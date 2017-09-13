@@ -87,12 +87,13 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
                     multitask_avg_loss += (1/n_tasks) * average_loss
 
             # Add the hyper-prior term:
-            # hyper_prior_factor = 0.01 * (1 / np.sqrt(n_tasks))
-            # # objective += hyper_prior_factor * stochastic_func.calc_param_norm('prior')
+            hyper_prior_factor = 0.01 * (1 / np.sqrt(n_tasks))
+            objective += hyper_prior_factor * sf.calc_param_norm('prior')
+
             # regularizer = tf.contrib.layers.l2_regularizer(scale=hyper_prior_factor)
             # reg_variables = tf.get_collection('prior')
             # reg_term = tf.contrib.layers.apply_regularization(regularizer, reg_variables)
-            # objective += reg_term
+            # objective += hyper_prior_factor * reg_term
 
             # Learning rate:
             learning_rate = prm.learning_rate
