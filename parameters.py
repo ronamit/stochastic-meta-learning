@@ -21,8 +21,8 @@ input_size = 28 * 28
 n_labels = 10
 
 # Network params:
-n_hidden1 = 420  # 100
-n_hidden2 = 400  # 100
+n_hidden1 = 800  # 400
+n_hidden2 = 800  # 400
 
 #  epsilons should be sampled ~ N(0,1):
 epsilonStdDefault = 1  # For debug set epsilons with 0.0 -> recovers standard NN
@@ -31,13 +31,13 @@ epsilonStdDefault = 1  # For debug set epsilons with 0.0 -> recovers standard NN
 # nMC = 1# How many epsilons to draw to estimate the expectation by averaging (Monte-Carlo)
 
 # Prior parameters
-sigma_prior_init = 5 #  1  Initial sigma prior (if we don't optimize the prior, then it is fixed)
+sigma_prior_init = 10 #  1  Initial sigma prior (if we don't optimize the prior, then it is fixed)
 
 # Learning Parameters:
 learning_rate = 1e-4  # 1e-4
 
 # Total Number of steps:
-default_n_steps = 2000000 # 2000000
+default_n_steps = int(2e6) # 2000000
 
 # Ratio of of steps for first stage (learning the posterior mean only):
 steps_stage_1_ratio = 0.1  # 0.3

@@ -16,12 +16,15 @@ import model_bayes_single_task
 # Result saving
 # -----------------------------------------------------------------------------------------------------------#
 setting_name = 'Single_Task'
-run_name = ''
+run_name = 'Net_800-800_sigma_10'
 cmn.save_to_archive(setting_name, run_name)
 
 
 # TODO: option to set fixed random streams..
 
+
+n_steps_bayes = int(2e6)
+n_steps_standard = int(1e5)
 # -----------------------------------------------------------------------------------------------------------#
 # Import data:
 # -----------------------------------------------------------------------------------------------------------#
@@ -43,7 +46,7 @@ with tf.Session() as sess:
 # -----------------------------------------------------------------------------------------------------------#
 print('---- Variational Bayes learning for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='Variational_Bayes')
+test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='Variational_Bayes', n_steps=n_steps_bayes)
 stopRuntime = timeit.default_timer()
 cmn.write_result('Variational Bayes learning - Test Error: {0} %, Runtime: {1} [sec]'
              .format(100*(1-test_accuracy), stopRuntime - startRuntime), setting_name)
@@ -53,7 +56,7 @@ cmn.write_result('Variational Bayes learning - Test Error: {0} %, Runtime: {1} [
 # -----------------------------------------------------------------------------------------------------------#
 print('---- PAC-Bayesian McAllaster learning for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='PAC_Bayes_McAllaster')
+test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='PAC_Bayes_McAllaster', n_steps=n_steps_bayes)
 stopRuntime = timeit.default_timer()
 cmn.write_result('PAC-Bayesian McAllaster learning - Test Error: {0} %, Runtime: {1} [sec]'.
              format(100*(1-test_accuracy), stopRuntime - startRuntime),setting_name)
@@ -61,7 +64,7 @@ cmn.write_result('PAC-Bayesian McAllaster learning - Test Error: {0} %, Runtime:
 
 print('---- PAC-Bayesian Pentina learning for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='PAC_Bayes_Pentina')
+test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='PAC_Bayes_Pentina', n_steps=n_steps_bayes)
 stopRuntime = timeit.default_timer()
 cmn.write_result('PAC-Bayesian Pentina learning - Test Error: {0} %, Runtime: {1} [sec]'.
              format(100*(1-test_accuracy), stopRuntime - startRuntime),setting_name)
@@ -69,7 +72,7 @@ cmn.write_result('PAC-Bayesian Pentina learning - Test Error: {0} %, Runtime: {1
 
 print('---- Bayes-no-prior  learning for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='Bayes_No_Prior')
+test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='Bayes_No_Prior', n_steps=n_steps_bayes)
 stopRuntime = timeit.default_timer()
 cmn.write_result('Bayes-no-prior  learning - Test Error: {0} %, Runtime: {1} [sec]'.
              format(100*(1-test_accuracy), stopRuntime - startRuntime),setting_name)
@@ -78,7 +81,7 @@ cmn.write_result('Bayes-no-prior  learning - Test Error: {0} %, Runtime: {1} [se
 # Seeger
 print('---- PAC-Bayesian Seeger learning for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='PAC_Bayes_Seeger')
+test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='PAC_Bayes_Seeger', n_steps=n_steps_bayes)
 stopRuntime = timeit.default_timer()
 cmn.write_result('PAC-Bayesian Seeger learning - Test Error: {0} %, Runtime: {1} [sec]'.
              format(100*(1-test_accuracy), stopRuntime - startRuntime),setting_name)
@@ -90,7 +93,7 @@ cmn.write_result('PAC-Bayesian Seeger learning - Test Error: {0} %, Runtime: {1}
 
 print('---- Standard learning (non-Bayesian net) for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_standard_single_task.learn_task(data1, weightsLoadFile='', weightsSaveFile='')
+test_accuracy = model_standard_single_task.learn_task(data1, weightsSaveFile='', n_steps=n_steps_standard)
 stopRuntime = timeit.default_timer()
 cmn.write_result('Standard net - Test Error: {0} %, Runtime: {1} [sec]'.
                  format(100*(1-test_accuracy), stopRuntime - startRuntime), setting_name)
@@ -98,7 +101,7 @@ cmn.write_result('Standard net - Test Error: {0} %, Runtime: {1} [sec]'.
 
 print('---- Standard (non-Bayesian net) + dropout learning for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_standard_single_task.learn_task(data1, weightsLoadFile='', weightsSaveFile='', dropout_flag=True)
+test_accuracy = model_standard_single_task.learn_task(data1, dropout_flag=True, n_steps=n_steps_standard)
 stopRuntime = timeit.default_timer()
 cmn.write_result('Standard net + dropout  - Test Error: {0} %, Runtime: {1} [sec]'.
                  format(100*(1-test_accuracy), stopRuntime - startRuntime), setting_name)
