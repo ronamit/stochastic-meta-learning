@@ -42,15 +42,6 @@ with tf.Session() as sess:
 # Run experiments
 # --------------------------------------------------------------------------------------#
 
-# Seeger
-print('---- PAC-Bayesian Seeger learning for a single task...')
-startRuntime = timeit.default_timer()
-test_accuracy = learn_bayes_single_task.learn_task(data1, objective_type='PAC_Bayes_Seeger', n_steps=n_steps_bayes)
-stopRuntime = timeit.default_timer()
-cmn.write_result('PAC-Bayesian Seeger learning - Test Error: {0} %, Runtime: {1} [sec]'.
-             format(100*(1-test_accuracy), stopRuntime - startRuntime), setting_name)
-
-
 
 
 # Variational Bayes Learning
@@ -89,13 +80,22 @@ cmn.write_result('Bayes-no-prior  learning - Test Error: {0} %, Runtime: {1} [se
              format(100*(1-test_accuracy), stopRuntime - startRuntime),setting_name)
 
 
+# Seeger
+print('---- PAC-Bayesian Seeger learning for a single task...')
+startRuntime = timeit.default_timer()
+test_accuracy = learn_bayes_single_task.learn_task(data1, objective_type='PAC_Bayes_Seeger', n_steps=n_steps_bayes)
+stopRuntime = timeit.default_timer()
+cmn.write_result('PAC-Bayesian Seeger learning - Test Error: {0} %, Runtime: {1} [sec]'.
+             format(100*(1-test_accuracy), stopRuntime - startRuntime), setting_name)
+
+
 # # --------   ---------------------------------------------------------------------------------------------------#
 # # Standard Learning
 # -----------------------------------------------------------------------------------------------------------#
 
 print('---- Standard learning (non-Bayesian net) for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_standard_single_task.learn_task(data1, weightsSaveFile='', n_steps=n_steps_standard)
+test_accuracy = learn_standard_single_task.learn_task(data1, n_steps=n_steps_standard)
 stopRuntime = timeit.default_timer()
 cmn.write_result('Standard net - Test Error: {0} %, Runtime: {1} [sec]'.
                  format(100*(1-test_accuracy), stopRuntime - startRuntime), setting_name)
@@ -103,7 +103,7 @@ cmn.write_result('Standard net - Test Error: {0} %, Runtime: {1} [sec]'.
 
 print('---- Standard (non-Bayesian net) + dropout learning for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_standard_single_task.learn_task(data1, dropout_flag=True, n_steps=n_steps_standard)
+test_accuracy = learn_standard_single_task.learn_task(data1, dropout_flag=True, n_steps=n_steps_standard)
 stopRuntime = timeit.default_timer()
 cmn.write_result('Standard net + dropout  - Test Error: {0} %, Runtime: {1} [sec]'.
                  format(100*(1-test_accuracy), stopRuntime - startRuntime), setting_name)

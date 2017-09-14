@@ -37,7 +37,6 @@ def learn_task(dataSet, weightsLoadFile='', weightsSaveFile='', dropout_flag=Fal
 
             # Build the graph for the deep net
             net_out = func_standard_net.network_model(x, dropout_flag)
-            net_out = tf.log(tf.clip_by_value(net_out, 1e-10, 1.0))  # avoid nan due to 0*log(0)
 
             loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=yGT, logits=net_out))
 
