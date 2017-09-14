@@ -10,7 +10,7 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 from tensorflow.examples.tutorials.mnist import input_data
 
 import common as cmn
-import model_bayes_multitask
+import learn_bayes_multitask
 import model_standard_single_task
 # -----------------------------------------------------------------------------------------------------------#
 # Result saving
@@ -55,7 +55,7 @@ prior_file_path = '/tmp/prior.ckpt'  # TODO: Date-time name
 #
 print('---- Meta-training ...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_bayes_multitask.learn_tasks(train_tasks_data,
+test_accuracy = learn_bayes_multitask.learn_tasks(train_tasks_data,
                                                   objective_type='PAC_Bayes_McAllaster', prior_file_path=prior_file_path,
                                                   mode='Meta_Training', n_steps=n_steps_bayes)
 stopRuntime = timeit.default_timer()
@@ -94,7 +94,7 @@ cmn.write_result('Meta-testing - standard learning - Average Test Error : {0} %,
 print('---- Bayesian Meta-testing ...')
 # TODO: Print how many tasks and how many training examples
 startRuntime = timeit.default_timer()
-test_accuracy = model_bayes_multitask.learn_tasks(
+test_accuracy = learn_bayes_multitask.learn_tasks(
     test_tasks_data,objective_type='PAC_Bayes_McAllaster',
     prior_file_path=prior_file_path, mode='Meta_Testing', n_steps=n_steps_bayes)
 stopRuntime = timeit.default_timer()

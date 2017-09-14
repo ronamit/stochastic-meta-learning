@@ -10,7 +10,7 @@ import tensorflow as tf
 import parameters as prm
 import common as cmn
 import model_standard_single_task
-import model_bayes_single_task
+import learn_bayes_single_task
 
 # -----------------------------------------------------------------------------------------------------------#
 # Result saving
@@ -46,7 +46,7 @@ with tf.Session() as sess:
 # -----------------------------------------------------------------------------------------------------------#
 print('---- Variational Bayes learning for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='Variational_Bayes', n_steps=n_steps_bayes)
+test_accuracy = learn_bayes_single_task.learn_task(data1, objective_type='Variational_Bayes', n_steps=n_steps_bayes)
 stopRuntime = timeit.default_timer()
 cmn.write_result('Variational Bayes learning - Test Error: {0} %, Runtime: {1} [sec]'
              .format(100*(1-test_accuracy), stopRuntime - startRuntime), setting_name)
@@ -56,7 +56,7 @@ cmn.write_result('Variational Bayes learning - Test Error: {0} %, Runtime: {1} [
 # -----------------------------------------------------------------------------------------------------------#
 print('---- PAC-Bayesian McAllaster learning for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='PAC_Bayes_McAllaster', n_steps=n_steps_bayes)
+test_accuracy = learn_bayes_single_task.learn_task(data1, objective_type='PAC_Bayes_McAllaster', n_steps=n_steps_bayes)
 stopRuntime = timeit.default_timer()
 cmn.write_result('PAC-Bayesian McAllaster learning - Test Error: {0} %, Runtime: {1} [sec]'.
              format(100*(1-test_accuracy), stopRuntime - startRuntime),setting_name)
@@ -64,7 +64,7 @@ cmn.write_result('PAC-Bayesian McAllaster learning - Test Error: {0} %, Runtime:
 
 print('---- PAC-Bayesian Pentina learning for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='PAC_Bayes_Pentina', n_steps=n_steps_bayes)
+test_accuracy = learn_bayes_single_task.learn_task(data1, objective_type='PAC_Bayes_Pentina', n_steps=n_steps_bayes)
 stopRuntime = timeit.default_timer()
 cmn.write_result('PAC-Bayesian Pentina learning - Test Error: {0} %, Runtime: {1} [sec]'.
              format(100*(1-test_accuracy), stopRuntime - startRuntime),setting_name)
@@ -72,7 +72,7 @@ cmn.write_result('PAC-Bayesian Pentina learning - Test Error: {0} %, Runtime: {1
 
 print('---- Bayes-no-prior  learning for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='Bayes_No_Prior', n_steps=n_steps_bayes)
+test_accuracy = learn_bayes_single_task.learn_task(data1, objective_type='Bayes_No_Prior', n_steps=n_steps_bayes)
 stopRuntime = timeit.default_timer()
 cmn.write_result('Bayes-no-prior  learning - Test Error: {0} %, Runtime: {1} [sec]'.
              format(100*(1-test_accuracy), stopRuntime - startRuntime),setting_name)
@@ -81,7 +81,7 @@ cmn.write_result('Bayes-no-prior  learning - Test Error: {0} %, Runtime: {1} [se
 # Seeger
 print('---- PAC-Bayesian Seeger learning for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_bayes_single_task.learn_task(data1, objective_type='PAC_Bayes_Seeger', n_steps=n_steps_bayes)
+test_accuracy = learn_bayes_single_task.learn_task(data1, objective_type='PAC_Bayes_Seeger', n_steps=n_steps_bayes)
 stopRuntime = timeit.default_timer()
 cmn.write_result('PAC-Bayesian Seeger learning - Test Error: {0} %, Runtime: {1} [sec]'.
              format(100*(1-test_accuracy), stopRuntime - startRuntime),setting_name)
