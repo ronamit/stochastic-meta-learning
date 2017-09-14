@@ -31,7 +31,7 @@ epsilonStdDefault = 1  # For debug set epsilons with 0.0 -> recovers standard NN
 # nMC = 1# How many epsilons to draw to estimate the expectation by averaging (Monte-Carlo)
 
 # Prior parameters
-sigma_prior_init = 10 #  1  Initial sigma prior (if we don't optimize the prior, then it is fixed)
+sigma_prior_init = 1 #  1  Initial sigma prior (if we don't optimize the prior, then it is fixed)
 
 # Learning Parameters:
 learning_rate = 1e-4  # 1e-4

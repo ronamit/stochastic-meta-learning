@@ -9,7 +9,7 @@ import tensorflow as tf
 
 import parameters as prm
 import common as cmn
-import model_standard_single_task
+import learn_standard_single_task
 import learn_bayes_single_task
 
 # -----------------------------------------------------------------------------------------------------------#
@@ -66,7 +66,7 @@ cmn.write_result('Bayes-no-prior  learning - Test Error: {0} %, Runtime: {1} [se
 
 print('---- Standard learning (non-Bayesian net) for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_standard_single_task.learn_task(data1, n_steps=n_steps_standard)
+test_accuracy = learn_standard_single_task.learn_task(data1, n_steps=n_steps_standard)
 stopRuntime = timeit.default_timer()
 cmn.write_result('Standard net - Test Error: {0} %, Runtime: {1} [sec]'.
                  format(100*(1-test_accuracy), stopRuntime - startRuntime), setting_name)
@@ -74,7 +74,7 @@ cmn.write_result('Standard net - Test Error: {0} %, Runtime: {1} [sec]'.
 
 print('---- Standard (non-Bayesian net) + dropout learning for a single task...')
 startRuntime = timeit.default_timer()
-test_accuracy = model_standard_single_task.learn_task(data1, dropout_flag=True, n_steps=n_steps_standard)
+test_accuracy = learn_standard_single_task.learn_task(data1, dropout_flag=True, n_steps=n_steps_standard)
 stopRuntime = timeit.default_timer()
 cmn.write_result('Standard net + dropout  - Test Error: {0} %, Runtime: {1} [sec]'.
                  format(100*(1-test_accuracy), stopRuntime - startRuntime), setting_name)

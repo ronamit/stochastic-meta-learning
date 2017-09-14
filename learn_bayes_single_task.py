@@ -50,6 +50,7 @@ def learn_task(data, objective_type, n_steps = prm.default_n_steps):
             # The net with the posterior variables acts on the inputs:
             with tf.variable_scope('posterior'):
                 net_out = sf.network_model('posterior', init_source='random', input=x, eps_std=eps_std)
+                net_out = tf.log(tf.clip_by_value(net_out, 1e-10, 1.0))  # avoid nan due to 0*log(0)
 
             # The empirical loss:
             average_loss = tf.reduce_mean(

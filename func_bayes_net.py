@@ -193,6 +193,7 @@ def single_task_objective(objective_type, average_loss, n_samples, kl_dist):
     elif objective_type == 'PAC_Bayes_Seeger':
         delta = 0.95
         seeger_eps = (1 / n_samples) * (kl_dist + np.log(2*np.sqrt(n_samples) / delta))
+        average_loss = tf.nn.relu(average_loss)  # To ensure positive TODO: find better fix
         objective = average_loss + 2 * seeger_eps + tf.sqrt(2 * seeger_eps * average_loss)
 
     elif objective_type == 'Variational_Bayes':

@@ -36,9 +36,10 @@ def learn_task(dataSet, weightsLoadFile='', weightsSaveFile='', dropout_flag=Fal
             yGT = tf.placeholder(tf.float32, [None, n_labels])  # Ground truth
 
             # Build the graph for the deep net
-            yOut = func_standard_net.network_model(x, dropout_flag)
+            net_out = func_standard_net.network_model(x, dropout_flag)
+            net_out = tf.log(tf.clip_by_value(net_out, 1e-10, 1.0))  # avoid nan due to 0*log(0)
 
-            loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=yGT, logits=yOut))
+            loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=yGT, logits=net_out))
 
             # reg_variables = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
             # reg_term = tf.contrib.layers.apply_regularization(regularizer, reg_variables) # TODO: regularizer as hyperprior
@@ -59,7 +60,7 @@ def learn_task(dataSet, weightsLoadFile='', weightsSaveFile='', dropout_flag=Fal
             # Optimizer:
             train_step = tf.train.AdamOptimizer(learning_rate).minimize(objective, var_list=weightsVars, global_step=global_step)
 
-            correct_prediction = tf.equal(tf.argmax(yOut, 1), tf.argmax(yGT, 1))
+            correct_prediction = tf.equal(tf.argmax(net_out, 1), tf.argmax(yGT, 1))
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
             saver = tf.train.Saver(var_list=weightsVars)

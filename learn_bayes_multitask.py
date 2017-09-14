@@ -62,7 +62,9 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
                 task_tag = 'posterior_' + str(i_task)
                 # For each task, apply the net with  appropriate inputs and weights posterior:
                 with tf.variable_scope(task_tag):
+
                     net_out = sf.network_model(task_tag, init_source='random', input=x[i_task], eps_std=eps_std)
+                    net_out = tf.log(tf.clip_by_value(net_out, 1e-10, 1.0))  # avoid nan due to 0*log(0)
 
                     # The empirical loss:
                     average_loss = tf.reduce_mean(

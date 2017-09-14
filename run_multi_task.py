@@ -11,7 +11,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 import common as cmn
 import learn_bayes_multitask
-import model_standard_single_task
+import learn_standard_single_task
 # -----------------------------------------------------------------------------------------------------------#
 # Result saving
 # -----------------------------------------------------------------------------------------------------------#
@@ -81,7 +81,7 @@ test_accuracy_standard_avg = 0
 
 startRuntime = timeit.default_timer()
 for i_task in xrange(n_tasks_test):
-    test_accuracy_standard = model_standard_single_task.learn_task(
+    test_accuracy_standard = learn_standard_single_task.learn_task(
         test_tasks_data[i_task], dropout_flag=False, n_steps=n_steps_standard)
     cmn.write_result('Meta-testing - Test Error in task {0} - standard learning : {1} %'.
                      format(i_task, 100 * (1 - test_accuracy_standard)), setting_name)
