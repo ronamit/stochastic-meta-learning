@@ -17,6 +17,7 @@ import glob
 import os
 import shutil
 from copy import deepcopy
+import parameters as prm
 
 # -----------------------------------------------------------------------------------------------------------#
 #  General TensorFlow functions
@@ -42,15 +43,36 @@ def subset_with_substring(tensor_list, substring):
 
 def get_var_from_list(tensor_list, var_name):
     return [var for var in tensor_list if var.name == var_name][0]
+
+
+def loss_function(labels, net_out):
+    '''' compute loss for a batch of data samples'''
+
+    if prm.loss_type == 'softmax':
+        return tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits=net_out)
+
+    elif prm.loss_type == 'hinge':
+        return tf.losses.hinge_loss(labels=labels, logits=net_out)
+
+    elif prm.loss_type == 'L2_SVM':
+        return tf.square(tf.losses.hinge_loss(labels=labels, logits=net_out))
+
+
+    else:
+        raise ValueError('Invalid loss_type')
+
+
+
+
 # -----------------------------------------------------------------------------------------------------------#
 # Result saving
 # -----------------------------------------------------------------------------------------------------------#
 
 def write_result(str, setting_name):
+
     print(str)
     with open(setting_name + '.out', 'a') as f:
         print(str, file=f)
-
 
         def save_to_archive(setting_name, run_name=''):
             start_time_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')

@@ -9,10 +9,9 @@ import tensorflow as tf
 
 import parameters as prm
 import func_standard_net
+import common as cmn
 
 input_size = prm.input_size
-n_hidden1 = prm.n_hidden1
-n_hidden2 = prm.n_hidden2
 n_labels = prm.n_labels
 
 
@@ -33,17 +32,18 @@ def learn_task(dataSet, weightsLoadFile='', weightsSaveFile='', dropout_flag=Fal
             x = tf.placeholder(tf.float32, [None, input_size])
 
             # Define loss and optimizer
-            yGT = tf.placeholder(tf.float32, [None, n_labels])  # Ground truth
+            labels = tf.placeholder(tf.float32, [None, n_labels])  # Ground truth
 
             # Build the graph for the deep net
-            net_out = func_standard_net.network_model(x, dropout_flag)
+            with tf.variable_scope('net'):
+                net_out = func_standard_net.network_model(x, dropout_flag)
 
-            loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=yGT, logits=net_out))
+            average_loss = tf.reduce_mean(cmn.loss_function(labels, net_out))
 
             # reg_variables = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
             # reg_term = tf.contrib.layers.apply_regularization(regularizer, reg_variables) # TODO: regularizer as hyperprior
 
-            objective = loss
+            objective = average_loss
 
             # Variables lists:
 
@@ -57,9 +57,10 @@ def learn_task(dataSet, weightsLoadFile='', weightsSaveFile='', dropout_flag=Fal
             learning_rate = prm.learning_rate
 
             # Optimizer:
-            train_step = tf.train.AdamOptimizer(learning_rate).minimize(objective, var_list=weightsVars, global_step=global_step)
+            train_step = tf.train.AdamOptimizer(learning_rate).minimize(
+                objective, var_list=weightsVars, global_step=global_step)
 
-            correct_prediction = tf.equal(tf.argmax(net_out, 1), tf.argmax(yGT, 1))
+            correct_prediction = tf.equal(tf.argmax(net_out, 1), tf.argmax(labels, 1))
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
             saver = tf.train.Saver(var_list=weightsVars)
@@ -83,7 +84,7 @@ def learn_task(dataSet, weightsLoadFile='', weightsSaveFile='', dropout_flag=Fal
             # Draw random mini-batch:
             batch = dataSet.train.next_batch(prm.batch_size, shuffle=True)
 
-            feed_dict = {x: batch[0], yGT: batch[1]}
+            feed_dict = {x: batch[0], labels: batch[1]}
 
             # Take gradient step:
             train_step.run(feed_dict=feed_dict)
@@ -95,7 +96,7 @@ def learn_task(dataSet, weightsLoadFile='', weightsSaveFile='', dropout_flag=Fal
                 print('step %d, training batch accuracy %g, batch objective: %g' % (iStep, train_accuracy, curr_objective))
 
         # Evaluate on test set
-        feed_dict = {x: dataSet.test.images, yGT: dataSet.test.labels}
+        feed_dict = {x: dataSet.test.images, labels: dataSet.test.labels}
         test_accuracy = sess.run(accuracy, feed_dict=feed_dict)
         print('test accuracy %g' % test_accuracy)
 

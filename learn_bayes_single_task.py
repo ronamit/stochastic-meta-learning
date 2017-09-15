@@ -52,8 +52,7 @@ def learn_task(data, objective_type, n_steps = prm.default_n_steps):
                 net_out = sf.network_model('posterior', init_source='random', input=x, eps_std=eps_std)
 
             # The empirical loss:
-            average_loss = tf.reduce_mean(
-                tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits=net_out))
+            average_loss = tf.reduce_mean(cmn.loss_function(labels, net_out))
 
             # The Kullback-Leibler divergence between posterior and prior:
             kl_dist = sf.calculate_kl_dist('posterior', 'prior')

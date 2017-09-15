@@ -9,11 +9,6 @@ import tensorflow as tf
 
 import parameters as prm
 
-input_size = prm.input_size
-n_hidden1 = prm.n_hidden1
-n_hidden2 = prm.n_hidden2
-n_labels = prm.n_labels
-
 
 def DoDropOut(a, dropout_flag):
     if dropout_flag:
@@ -41,19 +36,32 @@ def deterministic_linear_layer(x, layer_name, weight_shape, bias_shape):
 def network_model(x, dropout_flag):
     """network_model builds the graph for a deep net for classifying digits."""
 
-    with tf.variable_scope('net'):
-        # Fully connected layer 1
-        h_fc1 = tf.nn.elu(deterministic_linear_layer(x, layer_name="layer1", weight_shape=[input_size, n_hidden1],
-                                                     bias_shape=[n_hidden1]))
-        h_fc1 = DoDropOut(h_fc1, dropout_flag)
+    # Get net parameters:
+    input_size = prm.input_size
+    n_labels = prm.n_labels
+    width_per_layer = prm.width_per_layer
 
-        # Fully connected layer 2
-        h_fc2 = tf.nn.elu(deterministic_linear_layer(h_fc1, layer_name="layer2", weight_shape=[n_hidden1, n_hidden2],
-                                                     bias_shape=[n_hidden2]))
-        h_fc2 = DoDropOut(h_fc2, dropout_flag)
+    n_layers = len(width_per_layer) # number of hidden layers
+    prev_dim = input_size
+    h = x # input
 
-        #  Fully connected layer 3 - Map the  features to 10 classes, one for each digit
-        yOut = deterministic_linear_layer(h_fc2, layer_name="layer3", weight_shape=[n_hidden2, n_labels],
-                                          bias_shape=[n_labels])
-    return yOut
+    # hidden layers:
+    for i_layer in range(n_layers):
+        layer_name = 'hidden_layer' + str(i_layer)
+        new_dim = width_per_layer[i_layer]
+
+        # Fully-connected layer:
+        h = deterministic_linear_layer(h, layer_name=layer_name,
+                                       weight_shape=[prev_dim, new_dim], bias_shape=[new_dim])
+        # activation function:
+        h = tf.nn.elu(h)
+        h = DoDropOut(h, dropout_flag)
+        prev_dim = new_dim
+
+    # output layer:
+    layer_name = 'out_layer'
+    net_out = deterministic_linear_layer(h, layer_name=layer_name, weight_shape=[prev_dim, n_labels],
+                                      bias_shape=[n_labels])
+
+    return net_out
 

@@ -42,22 +42,6 @@ with tf.Session() as sess:
 n_steps_bayes = int(2e6)
 n_steps_standard = int(1e5)
 
-#  Bayes Learning
-# -----------------------------------------------------------------------------------------------------------#
-print('---- Variational Bayes learning for a single task...')
-startRuntime = timeit.default_timer()
-test_accuracy = learn_bayes_single_task.learn_task(data1, objective_type='Variational_Bayes', n_steps=n_steps_bayes)
-stopRuntime = timeit.default_timer()
-cmn.write_result('Variational Bayes learning - Test Error: {0} %, Runtime: {1} [sec]'
-             .format(100*(1-test_accuracy), stopRuntime - startRuntime), setting_name)
-
-
-print('---- Bayes-no-prior  learning for a single task...')
-startRuntime = timeit.default_timer()
-test_accuracy = learn_bayes_single_task.learn_task(data1, objective_type='Bayes_No_Prior', n_steps=n_steps_bayes)
-stopRuntime = timeit.default_timer()
-cmn.write_result('Bayes-no-prior  learning - Test Error: {0} %, Runtime: {1} [sec]'.
-             format(100*(1-test_accuracy), stopRuntime - startRuntime),setting_name)
 
 
 # # --------   ---------------------------------------------------------------------------------------------------#
@@ -78,3 +62,22 @@ test_accuracy = learn_standard_single_task.learn_task(data1, dropout_flag=True, 
 stopRuntime = timeit.default_timer()
 cmn.write_result('Standard net + dropout  - Test Error: {0} %, Runtime: {1} [sec]'.
                  format(100*(1-test_accuracy), stopRuntime - startRuntime), setting_name)
+
+
+
+#  Bayes Learning
+# -----------------------------------------------------------------------------------------------------------#
+print('---- Variational Bayes learning for a single task...')
+startRuntime = timeit.default_timer()
+test_accuracy = learn_bayes_single_task.learn_task(data1, objective_type='Variational_Bayes', n_steps=n_steps_bayes)
+stopRuntime = timeit.default_timer()
+cmn.write_result('Variational Bayes learning - Test Error: {0} %, Runtime: {1} [sec]'
+             .format(100*(1-test_accuracy), stopRuntime - startRuntime), setting_name)
+
+
+print('---- Bayes-no-prior  learning for a single task...')
+startRuntime = timeit.default_timer()
+test_accuracy = learn_bayes_single_task.learn_task(data1, objective_type='Bayes_No_Prior', n_steps=n_steps_bayes)
+stopRuntime = timeit.default_timer()
+cmn.write_result('Bayes-no-prior  learning - Test Error: {0} %, Runtime: {1} [sec]'.
+             format(100*(1-test_accuracy), stopRuntime - startRuntime),setting_name)

@@ -5,6 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 import parameters as prm
+import common as cmn
 import func_bayes_net as sf
 from common import subset_with_substring
 #-----------------------------------------------------------------------------------------------------------#
@@ -63,11 +64,11 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
                 # For each task, apply the net with  appropriate inputs and weights posterior:
                 with tf.variable_scope(task_tag):
 
+                    # Run net of current task:
                     net_out = sf.network_model(task_tag, init_source='random', input=x[i_task], eps_std=eps_std)
 
                     # The empirical loss:
-                    average_loss = tf.reduce_mean(
-                        tf.nn.softmax_cross_entropy_with_logits(labels=labels[i_task], logits=net_out))
+                    average_loss = tf.reduce_mean(cmn.loss_function(labels[i_task], net_out))
 
                     # The Kullback-Leibler divergence between posterior and prior:
                     kl_dist = sf.calculate_kl_dist(task_tag, 'prior')

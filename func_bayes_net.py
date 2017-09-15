@@ -12,10 +12,7 @@ from common import subset_with_substring, get_var_from_list
 #-----------------------------------------------------------------------------------------------------------#
 #   Extract parameters
 #-----------------------------------------------------------------------------------------------------------#
-input_size = prm.input_size
-n_hidden1 = prm.n_hidden1
-n_hidden2 = prm.n_hidden2
-n_labels = prm.n_labels
+
 
 bias_init = prm.bias_init   # Add some positive bias in the initialization to avoid 'dead' ReLu neurons
 sigma_prior_init = prm.sigma_prior_init
@@ -102,19 +99,32 @@ def network_model(net_name, init_source, input, eps_std):
       equal to the logits of classifying the input into one of n_labels classes
     """
 
-    # Fully connected layer 1
-    a1 = stochastic_linear_layer(input, net_name, init_source, "layer1", weight_shape=[input_size, n_hidden1],
-                                 bias_shape=[n_hidden1], eps_std=eps_std)
-    h1 = tf.nn.elu(a1)
+    # Get net parameters:
+    input_size = prm.input_size
+    n_labels = prm.n_labels
+    width_per_layer = prm.width_per_layer
 
-    # Fully connected layer 2
-    a2 = stochastic_linear_layer(h1, net_name, init_source, "layer2", weight_shape=[n_hidden1, n_hidden2],
-                                 bias_shape=[n_hidden2], eps_std=eps_std)
-    h2 = tf.nn.elu(a2)
+    n_layers = len(width_per_layer)  # number of hidden layers
+    prev_dim = input_size
+    h = input  # input
 
-    #  Fully connected layer 3 - Map the  features to 10 classes, one for each digit
-    net_out = stochastic_linear_layer(h2, net_name, init_source, "layer3", weight_shape=[n_hidden2, n_labels],
-                                      bias_shape=[n_labels], eps_std=eps_std)
+    # hidden layers:
+    for i_layer in range(n_layers):
+        layer_name = 'hidden_layer' + str(i_layer)
+        new_dim = width_per_layer[i_layer]
+
+        # Fully-connected layer:
+        h = stochastic_linear_layer(h, net_name, init_source, layer_name=layer_name,
+                                    weight_shape=[prev_dim, new_dim], bias_shape=[new_dim], eps_std=eps_std)
+        # activation function:
+        h = tf.nn.elu(h)
+
+        prev_dim = new_dim
+
+    # output layer:
+    layer_name = 'out_layer'
+    net_out = stochastic_linear_layer(h, net_name, init_source, layer_name=layer_name,
+                                      weight_shape=[prev_dim, n_labels], bias_shape=[n_labels], eps_std=eps_std)
 
     return net_out
 
@@ -191,9 +201,10 @@ def single_task_objective(objective_type, average_loss, n_samples, kl_dist):
         objective = average_loss + np.sqrt(1 / n_samples) * kl_dist
 
     elif objective_type == 'PAC_Bayes_Seeger':
+        p = 1e-9  # add small positive number to avoid sqrt of negative number due to numerical errors
         delta = 0.95
-        seeger_eps = (1 / n_samples) * (kl_dist + np.log(2*np.sqrt(n_samples) / delta))
-        objective = average_loss + 2 * seeger_eps + tf.sqrt(2 * seeger_eps * average_loss)
+        seeger_eps = (1 / n_samples) * (kl_dist + np.log(2*np.sqrt(n_samples) / delta) )
+        objective = average_loss + 2 * seeger_eps + tf.sqrt(2 * seeger_eps * average_loss + p)
 
     elif objective_type == 'Variational_Bayes':
         # Since we approximate the expectation of the likelihood of all samples,

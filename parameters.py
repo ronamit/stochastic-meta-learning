@@ -20,9 +20,11 @@ FLAGS = None
 input_size = 28 * 28
 n_labels = 10
 
-# Network params:
-n_hidden1 = 800  # 400
-n_hidden2 = 800  # 400
+# Network params (currently only fully-connected)
+# List of the number of units (width) in each hidden layer:
+width_per_layer = [4096, 4096, 4096] # [800, 800]
+
+loss_type = 'L2_SVM' # 'softmax' \ 'hinge' \ 'L2_SVM'
 
 #  epsilons should be sampled ~ N(0,1):
 epsilonStdDefault = 1  # For debug set epsilons with 0.0 -> recovers standard NN

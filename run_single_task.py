@@ -16,7 +16,7 @@ import learn_bayes_single_task
 # Result saving
 # -----------------------------------------------------------------------------------------------------------#
 setting_name = 'Single_Task'
-run_name = 'Net_800-800_sigma_10'
+run_name = ''
 cmn.save_to_archive(setting_name, run_name)
 
 
