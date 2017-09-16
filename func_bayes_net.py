@@ -190,32 +190,42 @@ def calc_param_norm(prior_collection):
     return total_norm
 
 
-def single_task_objective(objective_type, average_loss, n_samples, kl_dist):
+
+def single_task_complexity(objective_type, n_samples, kl_dist):
 
     if objective_type == 'PAC_Bayes_McAllaster':
         delta = 0.95
-        # log_inv_delta = tf.cast(np.log(1 / delta), tf.float32)
-        objective = average_loss + tf.sqrt((1 / (2 * n_samples)) * (kl_dist + np.log(2*np.sqrt(n_samples) / delta)))
+        complex_term = tf.sqrt((1 / (2 * n_samples)) * (kl_dist + np.log(2*np.sqrt(n_samples) / delta)))
 
     elif objective_type == 'PAC_Bayes_Pentina':
-        objective = average_loss + np.sqrt(1 / n_samples) * kl_dist
-
-    elif objective_type == 'PAC_Bayes_Seeger':
-        p = 1e-9  # add small positive number to avoid sqrt of negative number due to numerical errors
-        delta = 0.95
-        seeger_eps = (1 / n_samples) * (kl_dist + np.log(2*np.sqrt(n_samples) / delta) )
-        objective = average_loss + 2 * seeger_eps + tf.sqrt(2 * seeger_eps * average_loss + p)
+        complex_term = np.sqrt(1 / n_samples) * kl_dist
 
     elif objective_type == 'Variational_Bayes':
         # Since we approximate the expectation of the likelihood of all samples,
         # we need to multiply by the average_loss by total number of samples
         # Then we normalize the objective by n_samples
-        objective = average_loss + (1 / n_samples) * kl_dist
+        complex_term =  (1 / n_samples) * kl_dist
 
     elif objective_type == 'Bayes_No_Prior':
-        objective = average_loss
+        complex_term = 0
 
     else:
         raise ValueError('Invalid objective_type')
+
+    return complex_term
+
+
+
+def single_task_objective(objective_type, average_loss, n_samples, kl_dist):
+
+    if objective_type == 'PAC_Bayes_Seeger':
+        # Seeger complexity is different since it requires the average_loss
+        p = 1e-9  # add small positive number to avoid sqrt of negative number due to numerical errors
+        delta = 0.95
+        seeger_eps = (1 / n_samples) * (kl_dist + np.log(2*np.sqrt(n_samples) / delta) )
+        objective = average_loss + 2 * seeger_eps + tf.sqrt(2 * seeger_eps * average_loss + p)
+
+    else:
+        objective = average_loss + single_task_complexity(objective_type, n_samples, kl_dist)
 
     return objective

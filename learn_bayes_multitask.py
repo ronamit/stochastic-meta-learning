@@ -29,7 +29,7 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
     print('Number training of tasks: ', n_tasks)
 
     # list of the number of training examples in each task:
-    n_samples_list =  [x.train.num_examples for x in tasks_data]
+    n_samples_list = [x.train.num_examples for x in tasks_data]
 
     # -----------------------------------------------------------------------------------------------------------#
     #  Define the model's graph
@@ -39,12 +39,14 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
 
     with graph.as_default():
         with tf.variable_scope("graph"):
+            # Note: We initialize the graph for all tasks using the same place-holder input of a single task
+            # When the session is run, you need to fetch only the output relevant to the task in the input
 
-            # The input (batches of samples for each task)
-            x = tf.placeholder(tf.float32, [n_tasks, None, input_size])
+            # The input (batch of samples for some task)
+            x = tf.placeholder(tf.float32, [None, input_size])
 
             #  Ground truth labels:
-            labels = tf.placeholder(tf.float32, [n_tasks, None, n_labels])
+            labels = tf.placeholder(tf.float32, [None, n_labels])
 
             # STD of epsilon for re-parametrization trick:
             eps_std = tf.placeholder(tf.float32, [])
@@ -52,62 +54,66 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
             # Initialize the weight's prior variables:
             with tf.variable_scope('prior'):
                 # call network with dummy inputs to add prior variables to graph
-                sf.network_model('prior', init_source='constants', input=x[0], eps_std=1)
+                sf.network_model('prior', init_source='constants', input=x, eps_std=1)
 
-            # Build the total objective from all tasks:
-            objective = 0
-            total_kl, multitask_avg_loss = 0, 0
-            avg_accuracy = 0
+            # Build the graph for all tasks:
+
+            total_complexity = 0
+            intra_task_objectives = []
+            intra_task_accuaracy = []
 
             for i_task in xrange(n_tasks):
                 task_tag = 'posterior_' + str(i_task)
-                # For each task, apply the net with  appropriate inputs and weights posterior:
+
                 with tf.variable_scope(task_tag):
 
                     # Run net of current task:
-                    net_out = sf.network_model(task_tag, init_source='random', input=x[i_task], eps_std=eps_std)
+                    net_out = sf.network_model(task_tag, init_source='random', input=x, eps_std=eps_std)
+                    # Note: x is a placeholder that should be fed the inputs of the task which outputs are fetched
 
                     # The empirical loss:
-                    average_loss = tf.reduce_mean(cmn.loss_function(labels[i_task], net_out))
+                    average_loss = tf.reduce_mean(cmn.loss_function(labels, net_out))
 
                     # The Kullback-Leibler divergence between posterior and prior:
                     kl_dist = sf.calculate_kl_dist(task_tag, 'prior')
 
                     n_samples = n_samples_list[i_task]
 
-                    # Add the contribution of current to the total objective:
-                    with tf.control_dependencies([tf.assert_non_negative(average_loss)]):  # debug assertion
-                        objective += sf.single_task_objective(objective_type, average_loss, n_samples, kl_dist)
+                    # Complexity term:
+                    complex_term = sf.single_task_complexity(objective_type, n_samples, kl_dist)
+                    total_complexity += complex_term
 
-                    # Compare net output to true labels:
-                    correct_prediction = tf.equal(tf.argmax(net_out, 1), tf.argmax(labels[i_task], 1))
+                    # The intra-task objective:
+                    task_obj = average_loss + complex_term
+                    intra_task_objectives.append(task_obj)
+
+                    # Compare net output to true labels (for evaluation):
+                    correct_prediction = tf.equal(tf.argmax(net_out, 1), tf.argmax(labels, 1))
                     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-                    avg_accuracy += (1/n_tasks) * accuracy
+                    intra_task_accuaracy.append(accuracy)
 
-                    # for debug:
-                    total_kl += kl_dist
-                    multitask_avg_loss += (1/n_tasks) * average_loss
 
             # Add the hyper-prior term:
-            hyper_prior_factor = 0.01 * (1 / np.sqrt(n_tasks))
-            objective += hyper_prior_factor * sf.calc_param_norm('prior')
-
-            # regularizer = tf.contrib.layers.l2_regularizer(scale=hyper_prior_factor)
-            # reg_variables = tf.get_collection('prior')
-            # reg_term = tf.contrib.layers.apply_regularization(regularizer, reg_variables)
-            # objective += hyper_prior_factor * reg_term
+            hyper_prior_factor = 0.0001 * (1 / np.sqrt(n_tasks))
+            regularizer = tf.contrib.layers.l2_regularizer(scale=hyper_prior_factor)
+            hyper_prior_term = hyper_prior_factor * tf.contrib.layers.apply_regularization(regularizer, tf.get_collection('prior'))
+            # hyper_prior_term = hyper_prior_factor * sf.calc_param_norm('prior')
+            total_complexity += hyper_prior_term
 
             # Learning rate:
             learning_rate = prm.learning_rate
 
-            # Trainable variables lists:
-            all_vars_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
-            prior_vars_list = subset_with_substring(all_vars_list, 'graph/prior')
-            posterior_vars_list = subset_with_substring(all_vars_list, 'graph/posterior_')
+            # Optimization step for the prior:
+            prior_vars_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='graph/prior')
+            prior_step = tf.train.AdamOptimizer(learning_rate).minimize(total_complexity, var_list=prior_vars_list)
 
-            # Optimization step:
-            posterior_step = tf.train.AdamOptimizer(learning_rate).minimize(objective, var_list=posterior_vars_list)
-            prior_step = tf.train.AdamOptimizer(learning_rate).minimize(objective, var_list=prior_vars_list)
+            # Optimization step for each task's posterior:
+            task_posterior_steps = []
+            for i_task in xrange(n_tasks):
+                posterior_vars_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'graph/posterior_'+str(i_task))
+                task_posterior_steps.append(tf.train.AdamOptimizer(learning_rate).
+                                            minimize(intra_task_objectives[i_task], var_list=posterior_vars_list))
+    # end graph
 
     tf.reset_default_graph()
 
@@ -118,22 +124,22 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
     #  Run Learning
     # -----------------------------------------------------------------------------------------------------------#
 
+    train_eval_interval = 5000 # Print training performance evaluation after each interval of steps
 
     n_steps_stage_1 = int(n_steps * prm.steps_stage_1_ratio)
     n_steps_stage_2 = n_steps - n_steps_stage_1
     n_steps_with_full_eps_std = int(n_steps_stage_2 * prm.steps_with_full_eps_ratio)
 
+    prior_update_interval = 5
 
     with tf.Session(graph=graph) as sess:
         # Init variables
         sess.run(tf.global_variables_initializer())
 
-
         # In meta-testing, we used the pre-learned prior to learn new tasks:
         if mode == 'Meta_Testing':
             prior_saver.restore(sess, prior_file_path)
             print("Prior restored from: {0}".format(prior_file_path))
-
 
         for i_step in xrange(n_steps):
 
@@ -145,40 +151,45 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
                 cur_eps_std = 0.0
             cur_eps_std = min(max(cur_eps_std, 0.0), 1)  # keep in [0,1]
 
-            # Collect random mini-batch from all tasks:
-            X = np.zeros([n_tasks, prm.batch_size, input_size])
-            Y = np.zeros([n_tasks, prm.batch_size, n_labels])
+            avg_accuracy, avg_intra_obj = 0, 0
+            # Take posterior step in each task:
             for i_task in xrange(n_tasks):
+                # Collect random mini-batch from current task:
                 batch = tasks_data[i_task].train.next_batch(prm.batch_size, shuffle=True)
-                X[i_task] = batch[0]
-                Y[i_task] = batch[1]
+                feed_dict = {x: batch[0], labels:batch[1], eps_std: cur_eps_std}
+                # Take gradient step:
+                task_posterior_steps[i_task].run(feed_dict=feed_dict)
 
-            feed_dict = {x: X, labels:Y, eps_std: cur_eps_std}
+                # training performance evaluation:
+                if i_step % train_eval_interval == 0:
+                    curr_obj, curr_accuracy = sess.run([intra_task_objectives[i_task],
+                                                         intra_task_accuaracy[i_task]], feed_dict=feed_dict)
+                    avg_accuracy += (1/n_tasks) * curr_accuracy
+                    avg_intra_obj += (1 / n_tasks) * curr_obj
 
-            # Take gradient step:
-            posterior_step.run(feed_dict=feed_dict)
-            if mode == 'Meta_Training':
-                prior_step.run(feed_dict=feed_dict)
+            # Take prior step:
+            if mode == 'Meta_Training' and (i_step % prior_update_interval == 0):
+                prior_step.run() # no need for data feed
 
             #  training performance evaluation:
-            if i_step % 5000 == 0:
-                (train_accuracy, curr_objective, cur_total_kl, cur_multitask_avg_loss)= \
-                    sess.run([avg_accuracy, objective, total_kl, multitask_avg_loss], feed_dict=feed_dict)
+            if i_step % train_eval_interval == 0:
+                curr_total_complexity, curr_hyper_prior_term = sess.run([total_complexity, hyper_prior_term])
+                avg_intra_complex = (curr_total_complexity - curr_hyper_prior_term)/n_tasks
+                avg_empiric_loss = avg_intra_obj - avg_intra_complex
+                print('step %d, eps: %g, avg-accuracy %g, avg-empiric-loss: %g, avg-intra-complexity: %g, hyper-prior: %g' %
+                      (i_step, cur_eps_std, avg_accuracy, avg_empiric_loss,
+                      avg_intra_complex, curr_hyper_prior_term))
+        # end optimization steps
 
-                print('step %d, eps: %g, avg accuracy %g, objective: %g, ' %
-                      (i_step, cur_eps_std, train_accuracy, curr_objective) +
-                      'total kl: %g, avg loss: %g' % (cur_total_kl, cur_multitask_avg_loss))
-
-        # Evaluate on test set:
-        # assuming same number of test samples in all tasks
-        X = np.zeros((n_tasks, tasks_data[0].test.num_examples, input_size))
-        Y = np.zeros((n_tasks, tasks_data[0].test.num_examples, n_labels))
+        # Evaluate on the test-sets of training-tasks:
+        # (Note: the test sets are not available for the meta-learner)
+        test_accuracy = 0
         for i_task in xrange(n_tasks):
-            X[i_task, :, :] = tasks_data[i_task].test.images
-            Y[i_task, :, :] = tasks_data[i_task].test.labels
-        # Evaluate on test with epsilon = 0 (maximum of posterior)
-        feed_dict = {x: X, labels: Y, eps_std: 0}
-        test_accuracy = sess.run(avg_accuracy, feed_dict=feed_dict)
+            test_input = tasks_data[i_task].test.images
+            test_label = tasks_data[i_task].test.labels
+            # Evaluate on test with epsilon = 0 (maximum of posterior)
+            feed_dict = {x: test_input, labels: test_label, eps_std: 0}
+            test_accuracy += (1 / n_tasks) * sess.run(intra_task_accuaracy[i_task], feed_dict=feed_dict)
         print('test accuracy %g' % test_accuracy)
 
         # Save prior variables:

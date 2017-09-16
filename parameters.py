@@ -22,7 +22,7 @@ n_labels = 10
 
 # Network params (currently only fully-connected)
 # List of the number of units (width) in each hidden layer:
-width_per_layer = [4096, 4096, 4096] # [800, 800]
+width_per_layer = [800, 800] # [800, 800]
 
 loss_type = 'L2_SVM' # 'softmax' \ 'hinge' \ 'L2_SVM'
 
@@ -42,7 +42,7 @@ learning_rate = 1e-4  # 1e-4
 default_n_steps = int(2e6) # 2000000
 
 # Ratio of of steps for first stage (learning the posterior mean only):
-steps_stage_1_ratio = 0.1  # 0.3
+steps_stage_1_ratio = 0.05  # 0.1
 
 # Ratio of of steps out of the second stage with epsilon = 1:
 steps_with_full_eps_ratio = 0.2  # 0.5
