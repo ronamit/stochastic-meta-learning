@@ -14,11 +14,10 @@ import common as cmn
 input_size = prm.input_size
 n_labels = prm.n_labels
 
-
 # -----------------------------------------------------------------------------------------------------------#
 #  Single Task Deterministic Learning Function
 # -----------------------------------------------------------------------------------------------------------#
-def learn_task(dataSet, weightsLoadFile='', weightsSaveFile='', dropout_flag=False, n_steps=prm.default_n_steps):
+def learn_task(dataSet, weights_restore_file='', weights_save_file='', dropout_flag=False, n_steps=prm.default_n_steps):
 
     print('Number training of samples: ',  dataSet.train.num_examples)
     # -----------------------------------------------------------------------------------------------------------#
@@ -71,13 +70,14 @@ def learn_task(dataSet, weightsLoadFile='', weightsSaveFile='', dropout_flag=Fal
     # -----------------------------------------------------------------------------------------------------------#
 
     with tf.Session(graph=graph) as sess:
-        # Init variables
-        sess.run(tf.global_variables_initializer())
 
         # Get pre-trained weights (if available):
-        if weightsLoadFile != '':
-            print("Loading weights  from file: %s" % weightsLoadFile)
-            saver.restore(sess, weightsLoadFile)
+        if weights_restore_file != '':
+            print("Loading weights  from file: %s" % weights_restore_file)
+            saver.restore(sess, weights_restore_file)
+
+        # Init variables
+        cmn.initialize_uninitialized(sess)
 
         for iStep in xrange(n_steps):
 
@@ -101,8 +101,8 @@ def learn_task(dataSet, weightsLoadFile='', weightsSaveFile='', dropout_flag=Fal
         print('test accuracy %g' % test_accuracy)
 
         # Save weights variables:
-        if weightsSaveFile != '':
-            save_path = saver.save(sess, weightsSaveFile)
+        if weights_save_file != '':
+            save_path = saver.save(sess, weights_save_file)
             print("Posterior saved in file: %s" % save_path)
 
     return test_accuracy

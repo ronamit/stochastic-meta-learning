@@ -7,7 +7,7 @@ import tensorflow as tf
 
 import parameters as prm
 import common as cmn
-from common import subset_with_substring, get_var_from_list
+from common import subset_with_substring, get_var_from_list, get_var_with_substring
 
 #-----------------------------------------------------------------------------------------------------------#
 #   Extract parameters
@@ -28,7 +28,7 @@ def stochastic_linear_layer(x, net_name, init_source, layer_name, weight_shape, 
                            initializer=tf.random_normal_initializer(0, prm.random_init_std)):  # Default initializer
 
         # Variables initialization:
-        w_mu, b_mu, w_log_sigma, b_log_sigma = init_layer(init_source, weight_shape, bias_shape)
+        w_mu, b_mu, w_log_sigma, b_log_sigma = init_layer(layer_name, init_source, weight_shape, bias_shape)
 
         # Transform from log-sigma to sigma (ensures positive sigma):
         w_sigma_sqr = tf.exp(2*w_log_sigma, 'w_sigma_sqr')
@@ -49,7 +49,7 @@ def stochastic_linear_layer(x, net_name, init_source, layer_name, weight_shape, 
         return layer_out
 
 
-def init_layer(init_source, weight_shape, bias_shape):
+def init_layer(layer_name, init_source, weight_shape, bias_shape):
     # Variables initialization:
     if init_source == 'constants':
         # Initial prior variables by constants assignment
@@ -74,15 +74,13 @@ def init_layer(init_source, weight_shape, bias_shape):
         if not source_collection:
             raise ValueError('Invalid init_source')
         w_mu = tf.get_variable('w_mu',
-                               shape=weight_shape, initializer=get_var_from_list(source_collection, 'w_mu'))
-        b_mu = tf.get_variable('w_mu',
-                               shape=weight_shape, initializer=get_var_from_list(source_collection, 'b_mu'))
-        w_log_sigma = tf.get_variable('w_mu',
-                                      shape=weight_shape,
-                                      initializer=get_var_from_list(source_collection, 'w_log_sigma'))
-        b_log_sigma = tf.get_variable('w_mu',
-                                      shape=weight_shape,
-                                      initializer=get_var_from_list(source_collection, 'b_log_sigma'))
+                               initializer=get_var_with_substring(source_collection, layer_name+'/w_mu').initialized_value())
+        b_mu = tf.get_variable('b_mu',
+                               initializer=get_var_with_substring(source_collection, layer_name+'/b_mu').initialized_value())
+        w_log_sigma = tf.get_variable('w_log_sigma',
+                                      initializer=get_var_with_substring(source_collection, layer_name+'/w_log_sigma').initialized_value())
+        b_log_sigma = tf.get_variable('b_log_sigma',
+                                      initializer=get_var_with_substring(source_collection, layer_name+'/b_log_sigma').initialized_value())
     return w_mu, b_mu, w_log_sigma, b_log_sigma
 # -----------------------------------------------------------------------------------------------------------#
 #  Stochastic Network Model
@@ -110,7 +108,7 @@ def network_model(net_name, init_source, input, eps_std):
 
     # hidden layers:
     for i_layer in range(n_layers):
-        layer_name = 'hidden_layer' + str(i_layer)
+        layer_name = 'hidden_layer_' + str(i_layer)
         new_dim = width_per_layer[i_layer]
 
         # Fully-connected layer:
@@ -195,7 +193,9 @@ def single_task_complexity(objective_type, n_samples, kl_dist):
 
     if objective_type == 'PAC_Bayes_McAllaster':
         delta = 0.95
-        complex_term = tf.sqrt((1 / (2 * n_samples)) * (kl_dist + np.log(2*np.sqrt(n_samples) / delta)))
+        complex_term = tf.sqrt((1 / (2 * n_samples)) * (kl_dist + np.log(2*np.sqrt(n_samples) / delta))) - \
+                       np.sqrt((1 / (2 * n_samples)) * (np.log(2*np.sqrt(n_samples) / delta)))
+        # I subtracted a const so that the optimization could reach 0
 
     elif objective_type == 'PAC_Bayes_Pentina':
         complex_term = np.sqrt(1 / n_samples) * kl_dist
@@ -204,7 +204,7 @@ def single_task_complexity(objective_type, n_samples, kl_dist):
         # Since we approximate the expectation of the likelihood of all samples,
         # we need to multiply by the average_loss by total number of samples
         # Then we normalize the objective by n_samples
-        complex_term =  (1 / n_samples) * kl_dist
+        complex_term = (1 / n_samples) * kl_dist
 
     elif objective_type == 'Bayes_No_Prior':
         complex_term = 0

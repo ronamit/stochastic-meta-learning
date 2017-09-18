@@ -19,7 +19,7 @@ n_labels = prm.n_labels
 # -----------------------------------------------------------------------------------------------------------#
 
 
-def learn_task(data, objective_type, n_steps = prm.default_n_steps):
+def learn_task(data, objective_type, n_steps=prm.default_n_steps):
 
     n_samples = data.train.num_examples
     print('Number training of samples: ', n_samples)

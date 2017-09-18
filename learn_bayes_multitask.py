@@ -21,8 +21,19 @@ n_labels = prm.n_labels
 
 def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps=prm.default_n_steps):
 
+    if mode == 'Meta_Training':
+        posterior_init_source = 'random'
+        load_prior_flag = False  # False
+        learn_prior_flag = True  # True
+        save_prior_flag = True   # True
 
-    if mode not in ['Meta_Training', 'Meta_Testing']:
+    elif mode == 'Meta_Testing':
+        posterior_init_source = 'prior'
+        # note: the  prior will be restored from file, so it won't be initialized
+        load_prior_flag = False  # True
+        learn_prior_flag = False  # False
+        save_prior_flag = False  # False
+    else:
         raise ValueError('Invalid mode')
 
     n_tasks = len(tasks_data)
@@ -58,9 +69,9 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
 
             # Build the graph for all tasks:
 
-            total_complexity = 0
             intra_task_objectives = []
-            intra_task_accuaracy = []
+            per_task_accuaracy = []
+            total_complexity = 0
 
             for i_task in xrange(n_tasks):
                 task_tag = 'posterior_' + str(i_task)
@@ -68,7 +79,7 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
                 with tf.variable_scope(task_tag):
 
                     # Run net of current task:
-                    net_out = sf.network_model(task_tag, init_source='random', input=x, eps_std=eps_std)
+                    net_out = sf.network_model(task_tag, init_source=posterior_init_source, input=x, eps_std=eps_std)
                     # Note: x is a placeholder that should be fed the inputs of the task which outputs are fetched
 
                     # The empirical loss:
@@ -81,7 +92,7 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
 
                     # Complexity term:
                     complex_term = sf.single_task_complexity(objective_type, n_samples, kl_dist)
-                    total_complexity += complex_term
+                    total_complexity += (1/n_tasks) * complex_term
 
                     # The intra-task objective:
                     task_obj = average_loss + complex_term
@@ -90,14 +101,12 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
                     # Compare net output to true labels (for evaluation):
                     correct_prediction = tf.equal(tf.argmax(net_out, 1), tf.argmax(labels, 1))
                     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-                    intra_task_accuaracy.append(accuracy)
+                    per_task_accuaracy.append(accuracy)
 
 
             # Add the hyper-prior term:
-            hyper_prior_factor = 0.0001 * (1 / np.sqrt(n_tasks))
-            regularizer = tf.contrib.layers.l2_regularizer(scale=hyper_prior_factor)
-            hyper_prior_term = hyper_prior_factor * tf.contrib.layers.apply_regularization(regularizer, tf.get_collection('prior'))
-            # hyper_prior_term = hyper_prior_factor * sf.calc_param_norm('prior')
+            hyper_prior_factor = 1e-5 * (1 / np.sqrt(n_tasks))
+            hyper_prior_term = hyper_prior_factor * sf.calc_param_norm('prior')
             total_complexity += hyper_prior_term
 
             # Learning rate:
@@ -113,12 +122,14 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
                 posterior_vars_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'graph/posterior_'+str(i_task))
                 task_posterior_steps.append(tf.train.AdamOptimizer(learning_rate).
                                             minimize(intra_task_objectives[i_task], var_list=posterior_vars_list))
+
+            # Add ops to save and restore the prior variables:
+            prior_saver = tf.train.Saver(prior_vars_list)
+
+        # end graph scope
     # end graph
 
     tf.reset_default_graph()
-
-    # Add ops to save and restore the prior variables:
-    prior_saver = tf.train.Saver(prior_vars_list)
 
     # -----------------------------------------------------------------------------------------------------------#
     #  Run Learning
@@ -130,16 +141,18 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
     n_steps_stage_2 = n_steps - n_steps_stage_1
     n_steps_with_full_eps_std = int(n_steps_stage_2 * prm.steps_with_full_eps_ratio)
 
-    prior_update_interval = 5
+    prior_update_interval = 1 # 5
 
     with tf.Session(graph=graph) as sess:
-        # Init variables
-        sess.run(tf.global_variables_initializer())
 
         # In meta-testing, we used the pre-learned prior to learn new tasks:
-        if mode == 'Meta_Testing':
+        if load_prior_flag:
             prior_saver.restore(sess, prior_file_path)
             print("Prior restored from: {0}".format(prior_file_path))
+
+        # Init variables
+        cmn.initialize_uninitialized(sess)
+        # Note: we initial only the un-initialzied to keep the restored variables and the values initialed from them
 
         for i_step in xrange(n_steps):
 
@@ -161,24 +174,23 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
                 task_posterior_steps[i_task].run(feed_dict=feed_dict)
 
                 # training performance evaluation:
+                # Note: since we can evaluate only the task which is fed with data
                 if i_step % train_eval_interval == 0:
-                    curr_obj, curr_accuracy = sess.run([intra_task_objectives[i_task],
-                                                         intra_task_accuaracy[i_task]], feed_dict=feed_dict)
-                    avg_accuracy += (1/n_tasks) * curr_accuracy
-                    avg_intra_obj += (1 / n_tasks) * curr_obj
+                    c_obj, c_accuracy = sess.run([intra_task_objectives[i_task],
+                                                  per_task_accuaracy[i_task]], feed_dict=feed_dict)
+                    avg_accuracy += (1/n_tasks) * c_accuracy
+                    avg_intra_obj += (1/n_tasks) * c_obj
 
             # Take prior step:
-            if mode == 'Meta_Training' and (i_step % prior_update_interval == 0):
+            if learn_prior_flag and (i_step % prior_update_interval == 0):
                 prior_step.run() # no need for data feed
 
             #  training performance evaluation:
             if i_step % train_eval_interval == 0:
                 curr_total_complexity, curr_hyper_prior_term = sess.run([total_complexity, hyper_prior_term])
-                avg_intra_complex = (curr_total_complexity - curr_hyper_prior_term)/n_tasks
-                avg_empiric_loss = avg_intra_obj - avg_intra_complex
-                print('step %d, eps: %g, avg-accuracy %g, avg-empiric-loss: %g, avg-intra-complexity: %g, hyper-prior: %g' %
-                      (i_step, cur_eps_std, avg_accuracy, avg_empiric_loss,
-                      avg_intra_complex, curr_hyper_prior_term))
+                print('step %d, eps: %g, avg-accuracy %g, avg-intra-objective: %g, total-complexity: %g, hyper-prior: %g' %
+                      (i_step, cur_eps_std, avg_accuracy, avg_intra_obj,
+                       curr_total_complexity, curr_hyper_prior_term))
         # end optimization steps
 
         # Evaluate on the test-sets of training-tasks:
@@ -189,11 +201,11 @@ def learn_tasks(tasks_data, objective_type, prior_file_path='', mode='', n_steps
             test_label = tasks_data[i_task].test.labels
             # Evaluate on test with epsilon = 0 (maximum of posterior)
             feed_dict = {x: test_input, labels: test_label, eps_std: 0}
-            test_accuracy += (1 / n_tasks) * sess.run(intra_task_accuaracy[i_task], feed_dict=feed_dict)
+            test_accuracy += (1 / n_tasks) * sess.run(per_task_accuaracy[i_task], feed_dict=feed_dict)
         print('test accuracy %g' % test_accuracy)
 
         # Save prior variables:
-        if mode == 'Meta_Training' and not prior_file_path == '':
+        if  save_prior_flag and not prior_file_path == '':
             save_path = prior_saver.save(sess, prior_file_path)
             print("Prior saved in file: %s" % save_path)
 

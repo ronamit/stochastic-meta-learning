@@ -33,6 +33,15 @@ def get_reused_variable(scope, *args, **kwargs):
     return var
 
 
+def initialize_uninitialized(sess):
+    global_vars          = tf.global_variables()
+    is_not_initialized   = sess.run([tf.is_variable_initialized(var) for var in global_vars])
+    not_initialized_vars = [v for (v, f) in zip(global_vars, is_not_initialized) if not f]
+   # print [str(i.name) for i in not_initialized_vars] # only for testing
+    if len(not_initialized_vars):
+        sess.run(tf.variables_initializer(not_initialized_vars))
+
+
 def add_tensors_to_collection(collection, tensor_list):
     for tensor in tensor_list:
         tf.add_to_collection(collection, tensor)
@@ -41,8 +50,19 @@ def add_tensors_to_collection(collection, tensor_list):
 def subset_with_substring(tensor_list, substring):
     return [a for a in tensor_list if substring in a.name]
 
+
 def get_var_from_list(tensor_list, var_name):
-    return [var for var in tensor_list if var.name == var_name][0]
+    sublist = [var for var in tensor_list if var.name == var_name]
+    if len(sublist) > 1:
+        raise ValueError('More than one var fits criterion')
+    return sublist[0]
+
+
+def get_var_with_substring(tensor_list, substring):
+    sublist = [var for var in tensor_list if substring in var.name]
+    if len(sublist) > 1:
+        raise ValueError('More than one var fits criterion')
+    return sublist[0]
 
 
 def loss_function(labels, net_out):
