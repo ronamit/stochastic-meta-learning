@@ -54,5 +54,5 @@ batch_size = 128
 
 # Variables init
 random_init_std = 0.1
-bias_init = 1
+bias_init = 0
 
