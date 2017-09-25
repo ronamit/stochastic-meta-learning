@@ -42,7 +42,7 @@ with tf.Session() as sess:
 n_batches_per_epoch = 469 # For MNIST 60,000 samples, batch size = 128
 n_epoch = 200
 n_steps_bayes = 469 * 200
-#
+#,
 # ###################
 #
 # # Network params (currently only fully-connected)
